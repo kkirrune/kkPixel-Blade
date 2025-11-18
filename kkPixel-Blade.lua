@@ -582,236 +582,241 @@ local function createUI()
         label.TextWrapped = true
         label.Parent = frame
 
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0.35, -10, 0.7, 0)
-        button.Position = UDim2.new(0.65, 5, 0.5, -0.5 * 24)
-        button.Text = (SETTINGS[settingKey] and "ON") or "OFF"
-        button.Font = Enum.Font.SourceSansBold
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 16
-        button.BackgroundColor3 = (SETTINGS[settingKey] and TOGGLE_ON) or TOGGLE_OFF
-        button.Parent = frame
+       local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.35, -10, 0.7, 0)
+button.Position = UDim2.new(0.65, 5, 0.5, -0.5 * 24)
+button.Text = (SETTINGS[settingKey] and "ON") or "OFF"
+button.Font = Enum.Font.SourceSansBold
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.TextSize = 16
+button.BackgroundColor3 = (SETTINGS[settingKey] and TOGGLE_ON) or TOGGLE_OFF
+button.Parent = frame
 
-        local CornerBtn = Instance.new("UICorner")
-        CornerBtn.CornerRadius = UDim.new(0, 4)
-        CornerBtn.Parent = button
+local CornerBtn = Instance.new("UICorner")
+CornerBtn.CornerRadius = UDim.new(0, 4)
+CornerBtn.Parent = button
 
-        local function updateToggle(value)
-            SETTINGS[settingKey] = value
-            button.Text = value and "ON" or "OFF"
-            button.BackgroundColor3 = value and TOGGLE_ON or TOGGLE_OFF
-            updateLoopStatus()
-        end
+local function updateToggle(value)
+    SETTINGS[settingKey] = value
+    button.Text = value and "ON" or "OFF"
+    button.BackgroundColor3 = value and TOGGLE_ON or TOGGLE_OFF
+    updateLoopStatus()
+end
 
-        button.MouseButton1Click:Connect(function()
-            updateToggle(not SETTINGS[settingKey])
-        end)
+button.MouseButton1Click:Connect(function()
+    updateToggle(not SETTINGS[settingKey])
+end)
 
-        return {Frame = frame, SetValue = updateToggle, TextButton = button}
-    end
+return {Frame = frame, SetValue = updateToggle, TextButton = button}
+end
 
-    -- Helper Slider (textbox-style)
-    local function createSlider(name, settingKey, minVal, maxVal, step, suffix)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -20, 0, 52)
-        frame.BackgroundColor3 = FRAME_COLOR
-        frame.Parent = Scroll
+-- Helper Slider (textbox-style)
+local function createSlider(name, settingKey, minVal, maxVal, step, suffix)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -20, 0, 52)
+    frame.BackgroundColor3 = FRAME_COLOR
+    frame.Parent = Scroll
 
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, 6)
-        Corner.Parent = frame
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = frame
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 16)
-        label.Text = name .. ": " .. tostring(SETTINGS[settingKey]) .. (suffix or "")
-        label.Font = Enum.Font.SourceSans
-        label.TextColor3 = Color3.fromRGB(220, 220, 220)
-        label.BackgroundColor3 = FRAME_COLOR
-        label.TextSize = 12
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Position = UDim2.new(0, 5, 0, 0)
-        label.Parent = frame
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 16)
+    label.Text = name .. ": " .. tostring(SETTINGS[settingKey]) .. (suffix or "")
+    label.Font = Enum.Font.SourceSans
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.BackgroundColor3 = FRAME_COLOR
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Position = UDim2.new(0, 5, 0, 0)
+    label.Parent = frame
 
-        local slider = Instance.new("TextBox")
-        slider.Size = UDim2.new(1, -10, 0, 28)
-        slider.Position = UDim2.new(0, 5, 0, 20)
-        slider.Text = tostring(SETTINGS[settingKey])
-        slider.Font = Enum.Font.SourceSans
-        slider.TextColor3 = Color3.fromRGB(20, 20, 20)
-        slider.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-        slider.TextSize = 14
-        slider.Parent = frame
+    local slider = Instance.new("TextBox")
+    slider.Size = UDim2.new(1, -10, 0, 28)
+    slider.Position = UDim2.new(0, 5, 0, 20)
+    slider.Text = tostring(SETTINGS[settingKey])
+    slider.Font = Enum.Font.SourceSans
+    slider.TextColor3 = Color3.fromRGB(20, 20, 20)
+    slider.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    slider.TextSize = 14
+    slider.Parent = frame
 
-        local CornerSlider = Instance.new("UICorner")
-        CornerSlider.CornerRadius = UDim.new(0, 4)
-        CornerSlider.Parent = slider
+    local CornerSlider = Instance.new("UICorner")
+    CornerSlider.CornerRadius = UDim.new(0, 4)
+    CornerSlider.Parent = slider
 
-        slider.FocusLost:Connect(function(enterPressed)
-            local newVal = tonumber(slider.Text)
-            if newVal then
-                newVal = math_max(minVal, math_min(maxVal, newVal))
-                if step and step > 0 then
-                    newVal = math_floor(newVal / step + 0.5) * step
-                end
-                SETTINGS[settingKey] = newVal
-                slider.Text = tostring(newVal)
-                label.Text = name .. ": " .. tostring(newVal) .. (suffix or "")
-                updateLoopStatus()
-            else
-                slider.Text = tostring(SETTINGS[settingKey])
+    slider.FocusLost:Connect(function(enterPressed)
+        local newVal = tonumber(slider.Text)
+        if newVal then
+            newVal = math_max(minVal, math_min(maxVal, newVal))
+            if step and step > 0 then
+                newVal = math_floor(newVal / step + 0.5) * step
             end
-        end)
-
-        return {Frame = frame, SetValue = function(val)
-            SETTINGS[settingKey] = val
-            slider.Text = tostring(val)
-            label.Text = name .. ": " .. tostring(val) .. (suffix or "")
+            SETTINGS[settingKey] = newVal
+            slider.Text = tostring(newVal)
+            label.Text = name .. ": " .. tostring(newVal) .. (suffix or "")
             updateLoopStatus()
-        end}
+        else
+            slider.Text = tostring(SETTINGS[settingKey])
+        end
+    end)
+
+    return {Frame = frame, SetValue = function(val)
+        SETTINGS[settingKey] = val
+        slider.Text = tostring(val)
+        label.Text = name .. ": " .. tostring(val) .. (suffix or "")
+        updateLoopStatus()
+    end}
+end
+
+local function createHeader(text)
+    local header = Instance.new("TextLabel")
+    header.Size = UDim2.new(1, -20, 0, 26)
+    header.Text = text
+    header.Font = Enum.Font.SourceSansBold
+    header.TextColor3 = Color3.fromRGB(255, 255, 255)
+    header.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    header.TextSize = 16
+    header.Parent = Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = header
+
+    return header
+end
+
+-- Start building UI sections
+UI.Toggles = {}
+UI.Sliders = {}
+UI.Bars = {}
+
+createHeader("FARM PIXEL BLADE (V5 STABLE)")
+UI.Toggles.AuraEnabled = createToggle("BẬT KILL AURA", "AuraEnabled")
+UI.Sliders.AuraRange = createSlider("Phạm vi Aura", "AuraRange", 100, 2000, 10, " Studs")
+UI.Sliders.AttackDelay = createSlider("Tốc độ Đánh (s)", "AttackDelay", 0.05, 1.0, 0.01, " s")
+UI.Toggles.AutoMoveToTarget = createToggle("Auto Dịch Chuyển Quái (TP)", "AutoMoveToTarget")
+UI.Toggles.AutoBehindTarget = createToggle("Auto Đứng Đằng Sau Quái", "AutoBehindTarget")
+
+createHeader("KỸ NĂNG & HỒI PHỤC")
+UI.Toggles.AutoHeal = createToggle("Auto Buff/Heal", "AutoHeal")
+UI.Sliders.AutoHealHPThreshold = createSlider("Ngưỡng HP Buff", "AutoHealHPThreshold", 0.1, 0.95, 0.05, " (0.0 - 1.0)")
+UI.Toggles.AutoSkills = createToggle("Auto Tất Cả Skills", "AutoSkills")
+
+createHeader("STEALTH, HITBOX & MOVEMENT (Grouped)")
+UI.Toggles.FreezeEnemyAI = createToggle("Khống Chế Quái (Đóng Băng)", "FreezeEnemyAI")
+UI.Sliders.EnemyHitboxScale = createSlider("Giảm Hitbox Quái", "EnemyHitboxScale", 0.5, 1.0, 0.1, "x")
+UI.Sliders.PlayerHitboxScale = createSlider("Tăng Hitbox Người Chơi", "PlayerHitboxScale", 1.0, 1.5, 0.05, "x")
+UI.Sliders.HitboxChangeInterval = createSlider("Hitbox Change Interval", "HitboxScaleChangeInterval", 1, 60, 1, " s")
+UI.Sliders.MoveSpeedLimit = createSlider("Move Speed Limit (studs/frame equiv)", "MoveSpeedLimit", 1, 20, 0.5, " x")
+UI.Toggles.AutoDisconnect = createToggle("Tự động Rời khi có Admin", "AutoDisconnect")
+
+createHeader("GOM QUÁI & BURST (Grouped)")
+UI.Toggles.GomQuaiEnabled = createToggle("Bật Gom Quái", "GomQuaiEnabled")
+UI.Sliders.GomQuaiRange = createSlider("Phạm vi Gom", "GomQuaiRange", 10, 200, 1, " Studs")
+UI.Sliders.GomQuaiDelay = createSlider("Gom Delay", "GomQuaiDelay", 0.1, 10, 0.1, " s")
+
+UI.Toggles.BurstEnabled = createToggle("Bật Burst Combo", "BurstEnabled")
+UI.Sliders.BurstCount = createSlider("Số lần trong 1 Burst", "BurstCount", 1, 8, 1, " hits")
+UI.Sliders.BurstDelay = createSlider("Delay giữa hit trong Burst", "BurstDelay", 0.01, 0.5, 0.01, " s")
+UI.Sliders.BurstCooldown = createSlider("Burst Cooldown (full)", "BurstCooldown", 0.5, 10, 0.1, " s")
+
+-- Dual bars: Burst charge + Hitbox visual
+local barFrame = Instance.new("Frame")
+barFrame.Size = UDim2.new(1, -20, 0, 60)
+barFrame.BackgroundColor3 = FRAME_COLOR
+barFrame.Parent = Scroll
+
+local CornerBarFrame = Instance.new("UICorner")
+CornerBarFrame.CornerRadius = UDim.new(0, 6)
+CornerBarFrame.Parent = barFrame
+
+-- Burst bar background
+local burstBg = Instance.new("Frame")
+burstBg.Size = UDim2.new(1, -20, 0, 20)
+burstBg.Position = UDim2.new(0, 10, 0, 6)
+burstBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+burstBg.Parent = barFrame
+
+local burstFill = Instance.new("Frame")
+burstFill.Size = UDim2.new(0, 0, 1, 0)
+burstFill.BackgroundColor3 = TOGGLE_ON
+burstFill.BorderSizePixel = 0
+burstFill.Parent = burstBg
+
+local burstLabel = Instance.new("TextLabel")
+burstLabel.Size = UDim2.new(1, 0, 1, 0)
+burstLabel.Text = "Burst: 0/" .. tostring(SETTINGS.BurstCount)
+burstLabel.Font = Enum.Font.SourceSans
+burstLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+burstLabel.BackgroundTransparency = 1
+burstLabel.TextSize = 14
+burstLabel.Parent = burstBg
+
+-- Hitbox bar background
+local hitBg = Instance.new("Frame")
+hitBg.Size = UDim2.new(1, -20, 0, 20)
+hitBg.Position = UDim2.new(0, 10, 0, 32)
+hitBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+hitBg.Parent = barFrame
+
+local hitFill = Instance.new("Frame")
+hitFill.Size = UDim2.new(0, 0, 1, 0)
+hitFill.BackgroundColor3 = ACCENT_COLOR
+hitFill.BorderSizePixel = 0
+hitFill.Parent = hitBg
+
+local hitLabel = Instance.new("TextLabel")
+hitLabel.Size = UDim2.new(1, 0, 1, 0)
+hitLabel.Text = "Hitbox: " .. tostring(SETTINGS.PlayerHitboxScale) .. "x"
+hitLabel.Font = Enum.Font.SourceSans
+local hitLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+hitLabel.BackgroundTransparency = 1
+hitLabel.TextSize = 14
+hitLabel.Parent = hitBg
+
+UI.Bars.BurstBar = burstFill
+UI.Bars.BurstLabel = burstLabel
+UI.Bars.HitboxBar = hitFill
+UI.Bars.HitboxLabel = hitLabel
+
+-- Footer / Panic
+local Footer = createHeader("Phím Tắt: " .. SETTINGS.PANIC_KEY.Name .. " (Ẩn UI/Ngắt Khẩn Cấp)")
+Footer.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+
+-- Drag functionality
+local drag = false
+local dragStart = Vector2.new(0, 0)
+local dragOffsetVector = Vector2.new(0, 0) -- Biến để lưu trữ Vector Offset
+
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        drag = true
+        dragStart = UserInputService:GetMouseLocation()
+        local currentPos = UI.MainFrame.Position
+        -- Tính toán offset giữa chuột và góc trên bên trái của frame
+        dragOffsetVector = dragStart - Vector2.new(currentPos.X.Offset, currentPos.Y.Offset)
     end
+end)
 
-    local function createHeader(text)
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, -20, 0, 26)
-        header.Text = text
-        header.Font = Enum.Font.SourceSansBold
-        header.TextColor3 = Color3.fromRGB(255, 255, 255)
-        header.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        header.TextSize = 16
-        header.Parent = Scroll
-
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, 6)
-        Corner.Parent = header
-
-        return header
+Title.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        drag = false
     end
+end)
 
-    -- Start building UI sections
-    UI.Toggles = {}
-    UI.Sliders = {}
-    UI.Bars = {}
+RunService.RenderStepped:Connect(function()
+    if drag and UI.MainFrame then
+        local mousePos = UserInputService:GetMouseLocation()
+        -- Tính vị trí mới: vị trí chuột - offset đã tính toán
+        local newX = mousePos.X - dragOffsetVector.X
+        local newY = mousePos.Y - dragOffsetVector.Y
+        UI.MainFrame.Position = UDim2.new(0, newX, 0, newY)
+    end
+end)
 
-    createHeader("FARM PIXEL BLADE (V5 STABLE)")
-    UI.Toggles.AuraEnabled = createToggle("BẬT KILL AURA", "AuraEnabled")
-    UI.Sliders.AuraRange = createSlider("Phạm vi Aura", "AuraRange", 100, 2000, 10, " Studs")
-    UI.Sliders.AttackDelay = createSlider("Tốc độ Đánh (s)", "AttackDelay", 0.05, 1.0, 0.01, " s")
-    UI.Toggles.AutoMoveToTarget = createToggle("Auto Dịch Chuyển Quái (TP)", "AutoMoveToTarget")
-    UI.Toggles.AutoBehindTarget = createToggle("Auto Đứng Đằng Sau Quái", "AutoBehindTarget")
-
-    createHeader("KỸ NĂNG & HỒI PHỤC")
-    UI.Toggles.AutoHeal = createToggle("Auto Buff/Heal", "AutoHeal")
-    UI.Sliders.AutoHealHPThreshold = createSlider("Ngưỡng HP Buff", "AutoHealHPThreshold", 0.1, 0.95, 0.05, " (0.0 - 1.0)")
-    UI.Toggles.AutoSkills = createToggle("Auto Tất Cả Skills", "AutoSkills")
-
-    createHeader("STEALTH, HITBOX & MOVEMENT (Grouped)")
-    UI.Toggles.FreezeEnemyAI = createToggle("Khống Chế Quái (Đóng Băng)", "FreezeEnemyAI")
-    UI.Sliders.EnemyHitboxScale = createSlider("Giảm Hitbox Quái", "EnemyHitboxScale", 0.5, 1.0, 0.1, "x")
-    UI.Sliders.PlayerHitboxScale = createSlider("Tăng Hitbox Người Chơi", "PlayerHitboxScale", 1.0, 1.5, 0.05, "x")
-    UI.Sliders.HitboxChangeInterval = createSlider("Hitbox Change Interval", "HitboxScaleChangeInterval", 1, 60, 1, " s")
-    UI.Sliders.MoveSpeedLimit = createSlider("Move Speed Limit (studs/frame equiv)", "MoveSpeedLimit", 1, 20, 0.5, " x")
-    UI.Toggles.AutoDisconnect = createToggle("Tự động Rời khi có Admin", "AutoDisconnect")
-
-    createHeader("GOM QUÁI & BURST (Grouped)")
-    UI.Toggles.GomQuaiEnabled = createToggle("Bật Gom Quái", "GomQuaiEnabled")
-    UI.Sliders.GomQuaiRange = createSlider("Phạm vi Gom", "GomQuaiRange", 10, 200, 1, " Studs")
-    UI.Sliders.GomQuaiDelay = createSlider("Gom Delay", "GomQuaiDelay", 0.1, 10, 0.1, " s")
-
-    UI.Toggles.BurstEnabled = createToggle("Bật Burst Combo", "BurstEnabled")
-    UI.Sliders.BurstCount = createSlider("Số lần trong 1 Burst", "BurstCount", 1, 8, 1, " hits")
-    UI.Sliders.BurstDelay = createSlider("Delay giữa hit trong Burst", "BurstDelay", 0.01, 0.5, 0.01, " s")
-    UI.Sliders.BurstCooldown = createSlider("Burst Cooldown (full)", "BurstCooldown", 0.5, 10, 0.1, " s")
-
-    -- Dual bars: Burst charge + Hitbox visual
-    local barFrame = Instance.new("Frame")
-    barFrame.Size = UDim2.new(1, -20, 0, 60)
-    barFrame.BackgroundColor3 = FRAME_COLOR
-    barFrame.Parent = Scroll
-
-    local CornerBarFrame = Instance.new("UICorner")
-    CornerBarFrame.CornerRadius = UDim.new(0, 6)
-    CornerBarFrame.Parent = barFrame
-
-    -- Burst bar background
-    local burstBg = Instance.new("Frame")
-    burstBg.Size = UDim2.new(1, -20, 0, 20)
-    burstBg.Position = UDim2.new(0, 10, 0, 6)
-    burstBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    burstBg.Parent = barFrame
-
-    local burstFill = Instance.new("Frame")
-    burstFill.Size = UDim2.new(0, 0, 1, 0)
-    burstFill.BackgroundColor3 = TOGGLE_ON
-    burstFill.BorderSizePixel = 0
-    burstFill.Parent = burstBg
-
-    local burstLabel = Instance.new("TextLabel")
-    burstLabel.Size = UDim2.new(1, 0, 1, 0)
-    burstLabel.Text = "Burst: 0/" .. tostring(SETTINGS.BurstCount)
-    burstLabel.Font = Enum.Font.SourceSans
-    burstLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    burstLabel.BackgroundTransparency = 1
-    burstLabel.TextSize = 14
-    burstLabel.Parent = burstBg
-
-    -- Hitbox bar background
-    local hitBg = Instance.new("Frame")
-    hitBg.Size = UDim2.new(1, -20, 0, 20)
-    hitBg.Position = UDim2.new(0, 10, 0, 32)
-    hitBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    hitBg.Parent = barFrame
-
-    local hitFill = Instance.new("Frame")
-    hitFill.Size = UDim2.new(0, 0, 1, 0)
-    hitFill.BackgroundColor3 = ACCENT_COLOR
-    hitFill.BorderSizePixel = 0
-    hitFill.Parent = hitBg
-
-    local hitLabel = Instance.new("TextLabel")
-    hitLabel.Size = UDim2.new(1, 0, 1, 0)
-    hitLabel.Text = "Hitbox: " .. tostring(SETTINGS.PlayerHitboxScale) .. "x"
-    hitLabel.Font = Enum.Font.SourceSans
-    hitLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    hitLabel.BackgroundTransparency = 1
-    hitLabel.TextSize = 14
-    hitLabel.Parent = hitBg
-
-    UI.Bars.BurstBar = burstFill
-    UI.Bars.BurstLabel = burstLabel
-    UI.Bars.HitboxBar = hitFill
-    UI.Bars.HitboxLabel = hitLabel
-
-    -- Footer / Panic
-    local Footer = createHeader("Phím Tắt: " .. SETTINGS.PANIC_KEY.Name .. " (Ẩn UI/Ngắt Khẩn Cấp)")
-    Footer.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-
-    -- Drag functionality
-    local drag = false
-    local dragStart = Vector2.new(0, 0)
-    local dragOffset = MainFrame.Position
-
-    Title.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            drag = true
-            dragStart = input.Position
-            dragOffset = MainFrame.Position
-        end
-    end)
-
-    Title.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            drag = false
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement and drag then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(0, dragOffset.X.Offset + delta.X, 0, dragOffset.Y.Offset + delta.Y)
-        end
-    end)
-
-    return ScreenGui
+return ScreenGui
 end
 
 -- Khởi tạo UI
@@ -839,4 +844,4 @@ updateLoopStatus()
 print("-------------------------------------------------------")
 print("KKPIXEL_BLADE_V5.7: Enhanced Native UI (Stable) LOADED")
 print("BURST: " .. tostring(SETTINGS.BurstEnabled) .. " | HitboxScaleInterval: " .. tostring(SETTINGS.HitboxScaleChangeInterval))
-print("-------------------------------------------------------")
+print("successful load 100%")
