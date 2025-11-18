@@ -1,16 +1,11 @@
 -- Single-file HUB: Enhanced Native UI Mode (Volcano Safe)
--- Author: kkirru-style (ChatGPT)
--- Version: Anti-Ban Ẩn V5.6 (Enhanced Native UI, Auto Remote, Volcano Safe)
+-- Author: kkirru-style
 -- Features: V5 Logic + UI Controls + Automatic Remote Event Discovery + Modern Native UI Style.
 
 local SETTINGS = {
-    -- Auto Farm
     AuraEnabled = false, AuraRange = 500, AttackDelay = 0.5, AutoBehindTarget = false, AutoMoveToTarget = false,
-    -- Auto Skills & Heal
     AutoSkills = false, AutoHeal = false, AutoHealHPThreshold = 0.75, AutoUpgrade = false, SelectAllBuffs = false,
-    -- Exploit & Anti-Ban
     FreezeEnemyAI = false, EnemyHitboxScale = 1.0, PlayerHitboxScale = 1.0, AutoDisconnect = false, 
-    -- UI & Panic
     PANIC_KEY = Enum.KeyCode.Insert, UIVisible = true
 }
 
@@ -106,7 +101,7 @@ local function scanAndHookRemotes()
     end
 end
 
--- [ ... (Các hàm updateTargetCache, executePanicSwitch, checkAdmins giữ nguyên) ... ]
+-- [ ... (Các hàm updateTargetCache, executePanicSwitch, checkA#### giữ nguyên) ... ]
 
 local function updateTargetCache(maxRange)
     if os_clock() - lastCacheUpdate < TARGET_CACHE_TIME then return TARGET_CACHE end
@@ -231,7 +226,6 @@ local function startLoop()
             end
         end
 
-        -- 2. Auto Skills & 3. Auto Heal
         if SETTINGS.AutoSkills and SkillRemote and (timeNow - lastSkillTime > EstimateServerCooldown(random(0.2, 0.3))) then 
             pcall(SkillRemote.FireServer, SkillRemote, "AllSkills") 
             lastSkillTime = timeNow
@@ -245,7 +239,6 @@ local function startLoop()
             lastHealTime = timeNow
         end
 
-        -- 4. Freeze Enemy AI
         if SETTINGS.FreezeEnemyAI and (timeNow - lastFreezeTime > 0.5) then
             delay(0, function() 
                 for _, v in ipairs(Workspace:GetChildren()) do
