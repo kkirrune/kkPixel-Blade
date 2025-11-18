@@ -1,10 +1,63 @@
--- KKPixelBlade V6.0 (Single-file) - Ultimate Safe + Enhanced UI
--- Author: kkirru-style (Gemini) -> rewritten by ChatGPT (tớ)
--- Version: V6.0 (Rewritten: safer hooks, tighter throttles, cleaner UI)
+-- KKPixelBlade V6.0 (Single-file) - Ultimate Safe + Enhanced UI (Linoria)
+-- Author: kkirru-style (Gemini) -> rewritten by ChatGPT -> Modified for Linoria UI with Config Save/Load
+-- Version: V6.0 (Linoria UI, Config Enabled)
 -- Usage: paste into executor and run. Designed as a single-file HUB.
 
--- NOTE: Script wraps all sensitive calls in pcall and keeps state local.
--- Be mindful: using exploits may violate game rules. Use at your own risk.
+-- Kiểm tra sự tồn tại của thư viện Linoria và khởi tạo
+local Linoria = getgenv().Linoria
+if not Linoria and not getgenv()._linoria then
+    local function notify(t) warn("[KKPB] Linoria UI Library not found. Starting without UI.") end
+    if pcall(function() notify(game:GetService("StarterGui")) end) then
+        -- Attempt to use Roblox's notification system if possible
+    end
+end
+
+local UI_LIB_READY = (Linoria or getgenv()._linoria)
+
+-- Danh sách các khóa cần lưu/tải
+local CONFIG_KEYS = {
+    "AuraEnabled", "AuraRange", "AttackDelay", "AutoMoveToTarget", "AutoBehindTarget",
+    "AutoSkills", "AutoHeal", "AutoHealHPThreshold", "AutoUpgrade",
+    "PlayerHitboxScale", "EnemyHitboxScale", "HitboxChangeInterval", "MoveSpeedLimit",
+    "FreezeEnemyAI", "GomQuaiEnabled", "GomQuaiRange", "GomQuaiDelay",
+    "BurstEnabled", "BurstCount", "BurstDelay", "BurstCooldown",
+    "AutoDisconnect",
+}
+
+-- MÔ PHỎNG HÀM LƯU/TẢI CẤU HÌNH CỦA EXECUTOR
+local CONFIG_NAME = "KKPB_V6_Config"
+
+local function safeSaveConfig(settingsTable)
+    local savedData = {}
+    for _, key in ipairs(CONFIG_KEYS) do
+        savedData[key] = settingsTable[key]
+    end
+    
+    if type(getgenv()._save) == 'function' then -- Sử dụng hàm lưu Executor (giả định)
+        getgenv()._save(CONFIG_NAME, savedData)
+    elseif getgenv().Linoria and getgenv().Linoria.SaveConfig then
+        getgenv().Linoria:SaveConfig(savedData, CONFIG_NAME)
+    else
+        getgenv()[CONFIG_NAME .. "_Settings"] = savedData -- Lưu vào Global Env
+        print("[KKPB] Config Saved to Global Environment.")
+    end
+end
+
+local function safeLoadConfig()
+    local loadedData = {}
+    if type(getgenv()._load) == 'function' then
+        loadedData = getgenv()._load(CONFIG_NAME) or {}
+    elseif getgenv().Linoria and getgenv().Linoria.LoadConfig then
+        loadedData = getgenv().Linoria:LoadConfig(CONFIG_NAME) or {}
+    else
+        loadedData = getgenv()[CONFIG_NAME .. "_Settings"] or {} -- Tải từ Global Env
+        if next(loadedData) ~= nil then
+            print("[KKPB] Config Loaded from Global Environment.")
+        end
+    end
+    return loadedData
+end
+-- KẾT THÚC MÔ PHỎNG CONFIG
 
 local function safe_start_script()
     -- Services (cached locally inside function for safety)
@@ -13,7 +66,6 @@ local function safe_start_script()
     local UserInputService = game:GetService("UserInputService")
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local Workspace = game:GetService("Workspace")
-    local CoreGui = game:GetService("CoreGui")
     local Stats = game:GetService("Stats")
 
     -- Local player (pcall safe)
@@ -68,6 +120,14 @@ local function safe_start_script()
 
         AutoDisconnect = false,
     }
+    
+    -- TẢI CẤU HÌNH NGAY LẬP TỨC
+    local loadedCfg = safeLoadConfig()
+    for _, key in ipairs(CONFIG_KEYS) do
+        if loadedCfg[key] ~= nil then
+            SETTINGS[key] = loadedCfg[key]
+        end
+    end
 
     -- Internal state
     local STATE = {
@@ -80,8 +140,18 @@ local function safe_start_script()
         AttackRemote = nil,
         SkillRemote = nil,
         HealRemote = nil,
-        burstCharge = 0,
+        burstCharge = SETTINGS.BurstCount, -- Initialize burst
         lastBurstUse = 0,
+    }
+    
+    -- UI elements (for updates only)
+    local UI_ELEMENTS = {
+        BurstLabel = nil,
+        HitboxLabel = nil,
+        BurstProgressBar = nil,
+        HitboxProgressBar = nil,
+        -- Reference to Linoria Sliders/Toggles for forced UI update after Load
+        LinoriaControls = {} 
     }
 
     local ADMIN_KEYWORDS = {"admin","mod","owner","staff","dev","frostblade","helper"}
@@ -98,7 +168,7 @@ local function safe_start_script()
         return max(baseDelay, 0.05) + ping
     end
 
-    -- Safe remote fire/invoke
+    -- Safe remote fire/invoke (Logic remains the same)
     local function safeFireRemote(remote, ...)
         if not remote then return end
         pcall(function()
@@ -110,8 +180,9 @@ local function safe_start_script()
         end)
     end
 
-    -- Scan and hook remotes: conservative, non-destructive (wraps originals)
+    -- Scan and hook remotes (Logic remains the same)
     local function tryHookRemote(remote)
+        -- ... (remote hooking logic remains the same) ...
         if not remote then return end
         local className = remote.ClassName or ""
         if className ~= "RemoteEvent" and className ~= "RemoteFunction" then return end
@@ -187,8 +258,9 @@ local function safe_start_script()
         if Player then pcall(function() traverse(Player) end) end
     end
 
-    -- Target selection (throttled cache)
+    -- Target selection (Logic remains the same)
     local function updateTargetCache(maxRange)
+        -- ... (target cache logic remains the same) ...
         if tick() - STATE.lastCacheUpdate < 0.45 then return STATE.targetCache end
         STATE.lastCacheUpdate = tick()
         STATE.targetCache = nil
@@ -217,6 +289,7 @@ local function safe_start_script()
     end
 
     local function getTargetPosition(target)
+        -- ... (get target position logic remains the same) ...
         if not target or not target.PrimaryPart then return nil end
         local off = Vector3.new(rand(-4,4), rand(4,10), rand(-4,4))
         local pos = target.PrimaryPart.Position + off
@@ -227,7 +300,7 @@ local function safe_start_script()
         return pos
     end
 
-    -- Admin detection -> panic
+    -- Admin detection -> panic (Logic remains the same)
     local function executePanicSwitch(isBanRisk)
         -- stop loop
         if STATE.loopConnection then
@@ -244,13 +317,15 @@ local function safe_start_script()
             pcall(function() game:Shutdown() end)
         else
             print("[KKPB] Panic: exploit paused. UI is hidden.")
-            if UI and UI.MainFrame then
-                pcall(function() UI.MainFrame.Visible = false end)
+            if UI_LIB_READY and Linoria.Destroy then
+                -- Try to hide the Linoria UI
+                Linoria.Destroy(true)
             end
         end
     end
 
     local function checkAdmins()
+        -- ... (admin check logic remains the same) ...
         if not Players then return end
         if tick() - (checkAdmins._last or 0) < 4.0 then return end
         checkAdmins._last = tick()
@@ -271,8 +346,9 @@ local function safe_start_script()
         end
     end
 
-    -- Gom quái: lightweight teleport of NPC models nearby
+    -- Gom quái: lightweight teleport of NPC models nearby (Logic remains the same)
     local function gomQuai()
+        -- ... (gom quai logic remains the same) ...
         if not SETTINGS.GomQuaiEnabled then return end
         if tick() - STATE.lastGomQuaiTime < SETTINGS.GomQuaiDelay then return end
         STATE.lastGomQuaiTime = tick()
@@ -294,6 +370,7 @@ local function safe_start_script()
     end
 
     local function applyHitboxScale(scale)
+        -- ... (hitbox scale logic remains the same) ...
         if tick() - STATE.lastHitboxTime < SETTINGS.HitboxChangeInterval then return end
         STATE.lastHitboxTime = tick()
         pcall(function()
@@ -304,8 +381,9 @@ local function safe_start_script()
         end)
     end
 
-    -- Movement limiter: move toward target limited by MoveSpeedLimit
+    -- Movement limiter (Logic remains the same)
     local function limitMoveSpeed(targetPos, currentPos, maxSpeed)
+        -- ... (move limit logic remains the same) ...
         local delta = targetPos - currentPos
         local dist = delta.Magnitude
         if dist == 0 or maxSpeed <= 0 then return currentPos end
@@ -314,11 +392,11 @@ local function safe_start_script()
         return currentPos + move
     end
 
-    -- Main logic loop
+    -- Main logic loop (Logic remains the same, except for UI update)
     local function startLoop()
         if STATE.loopConnection then pcall(function() STATE.loopConnection:Disconnect() end) end
 
-        STATE.burstCharge = SETTINGS.BurstCount
+        STATE.burstCharge = SETTINGS.BurstCount -- Reset/Initialize burst charge
         STATE.lastBurstUse = 0
 
         local lastAttack = 0
@@ -342,7 +420,7 @@ local function safe_start_script()
             -- update target
             local target = updateTargetCache(SETTINGS.AuraRange)
 
-            -- ATTACK logic
+            -- ATTACK logic (Remains the same)
             local attackDelay = max(SETTINGS.AttackDelay, MIN_ATTACK_DELAY)
             if SETTINGS.AuraEnabled and target and STATE.AttackRemote then
                 if burstCounter > 0 then
@@ -369,7 +447,7 @@ local function safe_start_script()
                 end
             end
 
-            -- Auto move to target (throttled speed)
+            -- Auto move to target (Remains the same)
             if SETTINGS.AutoMoveToTarget and target and target.PrimaryPart then
                 local tpos = getTargetPosition(target)
                 if tpos then
@@ -383,20 +461,20 @@ local function safe_start_script()
                 end
             end
 
-            -- Auto skills
+            -- Auto skills (Remains the same)
             if SETTINGS.AutoSkills and STATE.SkillRemote and (now - lastSkill > EstimateServerCooldown(rand(0.2,0.35))) then
                 pcall(function() safeFireRemote(STATE.SkillRemote, "AllSkills") end)
                 lastSkill = now
             end
 
-            -- Auto heal
+            -- Auto heal (Remains the same)
             local currentHPPercent = hum.Health / max(1, hum.MaxHealth)
             if SETTINGS.AutoHeal and STATE.HealRemote and currentHPPercent < SETTINGS.AutoHealHPThreshold and (now - lastHeal > 5.0) then
                 pcall(function() safeFireRemote(STATE.HealRemote) end)
                 lastHeal = now
             end
 
-            -- Freeze AI
+            -- Freeze AI (Remains the same)
             if SETTINGS.FreezeEnemyAI and (now - lastFreeze > 0.5) then
                 lastFreeze = now
                 delay(0, function()
@@ -414,30 +492,27 @@ local function safe_start_script()
                 end)
             end
 
-            -- Hitbox apply
+            -- Hitbox apply (Remains the same)
             applyHitboxScale(SETTINGS.PlayerHitboxScale)
 
-            -- Gom quái
+            -- Gom quái (Remains the same)
             if SETTINGS.GomQuaiEnabled then gomQuai() end
 
-            -- Admin check (low frequency)
+            -- Admin check (Remains the same)
             checkAdmins()
 
             -- Update UI bars
-            if UI and UI.Bars then
+            if UI_LIB_READY and UI_ELEMENTS.BurstLabel then
                 pcall(function()
-                    if UI.Bars.BurstBar then
-                        local normalized = min(1, max(0, STATE.burstCharge / max(1, SETTINGS.BurstCount)))
-                        UI.Bars.BurstBar.Size = UDim2.new(normalized, 0, 1, 0)
-                        UI.Bars.BurstLabel.Text = "Burst: "..floor(STATE.burstCharge+0.5).."/"..tostring(SETTINGS.BurstCount)
-                    end
-                    if UI.Bars.HitboxBar then
-                        local minScale, maxScale = 1.0, 1.5
-                        local cl = min(maxScale, max(minScale, SETTINGS.PlayerHitboxScale))
-                        local norm = (cl - minScale) / (maxScale - minScale)
-                        UI.Bars.HitboxBar.Size = UDim2.new(norm, 0, 1, 0)
-                        UI.Bars.HitboxLabel.Text = ("Hitbox: %.2fx"):format(SETTINGS.PlayerHitboxScale)
-                    end
+                    local normalizedBurst = min(1, max(0, STATE.burstCharge / max(1, SETTINGS.BurstCount)))
+                    UI_ELEMENTS.BurstProgressBar:Update(normalizedBurst)
+                    UI_ELEMENTS.BurstLabel:Update("Burst: "..floor(STATE.burstCharge+0.5).."/"..tostring(SETTINGS.BurstCount))
+                    
+                    local minScale, maxScale = 1.0, 1.6
+                    local cl = min(maxScale, max(minScale, SETTINGS.PlayerHitboxScale))
+                    local normHitbox = (cl - minScale) / (maxScale - minScale)
+                    UI_ELEMENTS.HitboxProgressBar:Update(normHitbox)
+                    UI_ELEMENTS.HitboxLabel:Update(("Hitbox: %.2fx"):format(SETTINGS.PlayerHitboxScale))
                 end)
             end
         end)
@@ -454,252 +529,201 @@ local function safe_start_script()
             print("[KKPB] Farm loop stopped")
         end
     end
-
-    -- ========== UI Builder ===========
-    UI = {}
-    local ACCENT = Color3.fromRGB(207,48,74)
-    local BG = Color3.fromRGB(24,24,24)
-    local FRAME = Color3.fromRGB(38,38,38)
-    local TOGG_ON = Color3.fromRGB(48,207,74)
-    local TOGG_OFF = ACCENT
-
-    local function createToggle(name, key)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -20, 0, 36)
-        frame.BackgroundColor3 = FRAME
-        frame.Parent = Scroll
-
-        local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0,6) corner.Parent = frame
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(0.65,0,1,0)
-        label.Text = name
-        label.Font = Enum.Font.SourceSans
-        label.TextColor3 = Color3.fromRGB(220,220,220)
-        label.BackgroundTransparency = 1
-        label.TextSize = 15
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = frame
-
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.35, -10, 0.7, 0)
-        btn.Position = UDim2.new(0.65, 5, 0.15, 0)
-        btn.Text = (SETTINGS[key] and "ON") or "OFF"
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 14
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.BackgroundColor3 = (SETTINGS[key] and TOGG_ON) or TOGG_OFF
-        btn.Parent = frame
-        local cornerB = Instance.new("UICorner") cornerB.CornerRadius = UDim.new(0,4) cornerB.Parent = btn
-
-        local function setVal(v)
-            SETTINGS[key] = v
-            btn.Text = v and "ON" or "OFF"
-            btn.BackgroundColor3 = v and TOGG_ON or TOGG_OFF
-            updateLoopStatus()
+    
+    -- Function to refresh all UI elements with current SETTINGS values
+    local function updateLinoriaUI()
+        for key, control in pairs(UI_ELEMENTS.LinoriaControls) do
+            if control and control.Update then
+                control:Update(SETTINGS[key])
+            end
         end
-        btn.MouseButton1Click:Connect(function() setVal(not SETTINGS[key]) end)
-        return {Frame = frame, SetValue = setVal}
+        updateLoopStatus()
+        -- Force a manual update for the progress bars
+        if UI_ELEMENTS.HitboxLabel then 
+            UI_ELEMENTS.HitboxLabel:Update(("Hitbox: %.2fx"):format(SETTINGS.PlayerHitboxScale)) 
+        end
     end
 
-    local function createSlider(name, key, minV, maxV, step, suffix)
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(1, -20, 0, 54)
-        frame.BackgroundColor3 = FRAME
-        frame.Parent = Scroll
-        local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0,6) corner.Parent = frame
+    -- ========== LINORIA UI BUILDER ===========
+    local function createLinoriaUI()
+        if not UI_LIB_READY then return end
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1,0,0,16)
-        label.Position = UDim2.new(0,5,0,2)
-        label.Text = name .. ": " .. tostring(SETTINGS[key]) .. (suffix or "")
-        label.Font = Enum.Font.SourceSans
-        label.TextColor3 = Color3.fromRGB(220,220,220)
-        label.TextSize = 12
-        label.BackgroundTransparency = 1
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = frame
+        local Window = Linoria:Window("KKPIXEL BLADE V6.0 (Safe)", {
+            Theme = Color3.fromRGB(207, 48, 74),
+            Size = UDim2.fromOffset(400, 500),
+            Position = UDim2.fromOffset(50, 50)
+        })
 
-        local box = Instance.new("TextBox")
-        box.Size = UDim2.new(1, -10, 0, 30)
-        box.Position = UDim2.new(0,5,0,20)
-        box.Text = tostring(SETTINGS[key])
-        box.Font = Enum.Font.SourceSans
-        box.TextSize = 14
-        box.TextColor3 = Color3.fromRGB(20,20,20)
-        box.BackgroundColor3 = Color3.fromRGB(200,200,200)
-        box.Parent = frame
-        local cornerS = Instance.new("UICorner") cornerS.CornerRadius = UDim.new(0,4) cornerS.Parent = box
+        local Tab1 = Window:Tab("FARMING")
+        local Tab2 = Window:Tab("COMBAT & MISC")
+        local Tab3 = Window:Tab("CONFIG")
 
-        box.FocusLost:Connect(function()
-            local v = tonumber(box.Text)
-            if v then
-                v = max(minV, min(maxV, v))
-                if step and step > 0 then v = floor(v/step + 0.5) * step end
-                SETTINGS[key] = v
-                box.Text = tostring(v)
-                label.Text = name .. ": " .. tostring(v) .. (suffix or "")
-                updateLoopStatus()
+        -- === TAB 1: FARMING ===
+        local FarmGroup = Tab1:Group("FARM")
+        UI_ELEMENTS.LinoriaControls.AuraEnabled = FarmGroup:Toggle("BẬT KILL AURA", SETTINGS.AuraEnabled, function(v)
+            SETTINGS.AuraEnabled = v
+            updateLoopStatus()
+        end)
+
+        UI_ELEMENTS.LinoriaControls.AuraRange = FarmGroup:Slider("Phạm vi Aura", SETTINGS.AuraRange, {
+            Min = 100, Max = 3000, Decimals = 0, Suffix = " Studs",
+            Callback = function(v) SETTINGS.AuraRange = v end
+        })
+
+        UI_ELEMENTS.LinoriaControls.AttackDelay = FarmGroup:Slider("Tốc độ Đánh (s)", SETTINGS.AttackDelay, {
+            Min = 0.05, Max = 1.0, Decimals = 2, Suffix = " s",
+            Callback = function(v) SETTINGS.AttackDelay = v end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.AutoMoveToTarget = FarmGroup:Toggle("Auto Dịch chuyển (TP)", SETTINGS.AutoMoveToTarget, function(v)
+            SETTINGS.AutoMoveToTarget = v
+        end)
+        
+        UI_ELEMENTS.LinoriaControls.AutoBehindTarget = FarmGroup:Toggle("Auto Đứng đằng sau mục tiêu", SETTINGS.AutoBehindTarget, function(v)
+            SETTINGS.AutoBehindTarget = v
+        end)
+
+        local GomQuaiGroup = Tab1:Group("GOM QUÁI")
+        UI_ELEMENTS.LinoriaControls.GomQuaiEnabled = GomQuaiGroup:Toggle("Bật Gom Quái", SETTINGS.GomQuaiEnabled, function(v)
+            SETTINGS.GomQuaiEnabled = v
+            updateLoopStatus()
+        end)
+
+        UI_ELEMENTS.LinoriaControls.GomQuaiRange = GomQuaiGroup:Slider("Phạm vi Gom", SETTINGS.GomQuaiRange, {
+            Min = 5, Max = 250, Decimals = 0, Suffix = " Studs",
+            Callback = function(v) SETTINGS.GomQuaiRange = v end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.GomQuaiDelay = GomQuaiGroup:Slider("Delay Gom (s)", SETTINGS.GomQuaiDelay, {
+            Min = 0.1, Max = 10.0, Decimals = 1, Suffix = " s",
+            Callback = function(v) SETTINGS.GomQuaiDelay = v end
+        })
+
+        -- === TAB 2: COMBAT & MISC ===
+        local SkillsGroup = Tab2:Group("KỸ NĂNG & HỒI PHỤC")
+        UI_ELEMENTS.LinoriaControls.AutoHeal = SkillsGroup:Toggle("Auto Buff/Heal", SETTINGS.AutoHeal, function(v)
+            SETTINGS.AutoHeal = v
+            updateLoopStatus()
+        end)
+        
+        UI_ELEMENTS.LinoriaControls.AutoHealHPThreshold = SkillsGroup:Slider("Ngưỡng HP Buff", SETTINGS.AutoHealHPThreshold, {
+            Min = 0.1, Max = 0.95, Decimals = 2, Suffix = " (0-1)",
+            Callback = function(v) SETTINGS.AutoHealHPThreshold = v end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.AutoSkills = SkillsGroup:Toggle("Auto Tất cả Skills", SETTINGS.AutoSkills, function(v)
+            SETTINGS.AutoSkills = v
+            updateLoopStatus()
+        end)
+        
+        local HitboxGroup = Tab2:Group("HITBOX & MOVEMENT")
+        
+        UI_ELEMENTS.LinoriaControls.PlayerHitboxScale = HitboxGroup:Slider("Tăng Hitbox Người chơi", SETTINGS.PlayerHitboxScale, {
+            Min = 1.0, Max = 1.6, Decimals = 2, Suffix = "x",
+            Callback = function(v) SETTINGS.PlayerHitboxScale = v end
+        })
+
+        UI_ELEMENTS.LinoriaControls.EnemyHitboxScale = HitboxGroup:Slider("Giảm Hitbox Quái", SETTINGS.EnemyHitboxScale, {
+            Min = 0.5, Max = 1.0, Decimals = 2, Suffix = "x",
+            Callback = function(v) SETTINGS.EnemyHitboxScale = v end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.HitboxChangeInterval = HitboxGroup:Slider("Hitbox Interval", SETTINGS.HitboxChangeInterval, {
+            Min = 1, Max = 60, Decimals = 0, Suffix = " s",
+            Callback = function(v) SETTINGS.HitboxChangeInterval = v end
+        })
+
+        UI_ELEMENTS.LinoriaControls.MoveSpeedLimit = HitboxGroup:Slider("Move Speed Limit", SETTINGS.MoveSpeedLimit, {
+            Min = 1, Max = 30, Decimals = 1,
+            Callback = function(v) SETTINGS.MoveSpeedLimit = v end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.FreezeEnemyAI = HitboxGroup:Toggle("Khống chế quái (Freeze)", SETTINGS.FreezeEnemyAI, function(v)
+            SETTINGS.FreezeEnemyAI = v
+            updateLoopStatus()
+        end)
+
+        UI_ELEMENTS.LinoriaControls.AutoDisconnect = HitboxGroup:Toggle("Tự động rời khi admin", SETTINGS.AutoDisconnect, function(v)
+            SETTINGS.AutoDisconnect = v
+        end)
+        
+        local BurstGroup = Tab2:Group("BURST COMBO")
+        UI_ELEMENTS.LinoriaControls.BurstEnabled = BurstGroup:Toggle("Bật Burst Combo", SETTINGS.BurstEnabled, function(v)
+            SETTINGS.BurstEnabled = v
+        end)
+        
+        UI_ELEMENTS.LinoriaControls.BurstCount = BurstGroup:Slider("Số hits trong Burst", SETTINGS.BurstCount, {
+            Min = 1, Max = 8, Decimals = 0, Suffix = " hits",
+            Callback = function(v)
+                SETTINGS.BurstCount = v
+                STATE.burstCharge = min(STATE.burstCharge, v) -- Prevent overflow if max is reduced
+            end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.BurstDelay = BurstGroup:Slider("Delay giữa hit", SETTINGS.BurstDelay, {
+            Min = 0.01, Max = 0.5, Decimals = 2, Suffix = " s",
+            Callback = function(v) SETTINGS.BurstDelay = v end
+        })
+        
+        UI_ELEMENTS.LinoriaControls.BurstCooldown = BurstGroup:Slider("Burst Cooldown (full)", SETTINGS.BurstCooldown, {
+            Min = 0.5, Max = 10.0, Decimals = 1, Suffix = " s",
+            Callback = function(v) SETTINGS.BurstCooldown = v end
+        })
+        
+        -- Progress Bars
+        local StatusGroup = Tab2:Group("STATUS")
+        
+        UI_ELEMENTS.BurstLabel = StatusGroup:Label("Burst: "..floor(STATE.burstCharge+0.5).."/"..tostring(SETTINGS.BurstCount))
+        UI_ELEMENTS.BurstProgressBar = StatusGroup:Progress(0, Color3.fromRGB(48,207,74))
+
+        UI_ELEMENTS.HitboxLabel = StatusGroup:Label(("Hitbox: %.2fx"):format(SETTINGS.PlayerHitboxScale))
+        UI_ELEMENTS.HitboxProgressBar = StatusGroup:Progress(0, Color3.fromRGB(207,48,74))
+
+        -- === TAB 3: CONFIG & INFO ===
+        local ConfigGroup = Tab3:Group("LƯU & TẢI CẤU HÌNH")
+        
+        ConfigGroup:Button("LƯU CẤU HÌNH HIỆN TẠI", function()
+            safeSaveConfig(SETTINGS)
+        end)
+        
+        ConfigGroup:Button("TẢI CẤU HÌNH ĐÃ LƯU", function()
+            local newCfg = safeLoadConfig()
+            if next(newCfg) ~= nil then
+                for _, key in ipairs(CONFIG_KEYS) do
+                    if newCfg[key] ~= nil then
+                        SETTINGS[key] = newCfg[key]
+                    end
+                end
+                updateLinoriaUI() -- Cập nhật UI để khớp với SETTINGS mới
+                print("[KKPB] Configuration Loaded Successfully and UI Updated.")
             else
-                box.Text = tostring(SETTINGS[key])
+                print("[KKPB] No saved configuration found or load failed.")
             end
         end)
-
-        return {Frame = frame, SetValue = function(val)
-            SETTINGS[key] = val
-            box.Text = tostring(val)
-            label.Text = name .. ": " .. tostring(val) .. (suffix or "")
-            updateLoopStatus()
-        end}
-    end
-
-    local function createHeader(text)
-        local header = Instance.new("TextLabel")
-        header.Size = UDim2.new(1, -20, 0, 26)
-        header.Text = text
-        header.Font = Enum.Font.SourceSansBold
-        header.TextColor3 = Color3.new(1,1,1)
-        header.BackgroundColor3 = Color3.fromRGB(50,50,50)
-        header.TextSize = 16
-        header.Parent = Scroll
-        local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0,6) corner.Parent = header
-        return header
-    end
-
-    -- Build UI
-    local function createUI()
-        local ScreenGui = Instance.new("ScreenGui")
-        ScreenGui.Name = "KKPixelBlade_V6_UI"
-        -- try PlayerGui then CoreGui
-        local ok
-        ok = pcall(function() ScreenGui.Parent = Player:WaitForChild("PlayerGui") end)
-        if not ok then ScreenGui.Parent = CoreGui end
-
-        local Main = Instance.new("Frame")
-        Main.Size = UDim2.new(0,360,0,520)
-        Main.Position = UDim2.new(0.5, -180, 0.5, -260)
-        Main.BackgroundColor3 = FRAME
-        Main.BorderSizePixel = 0
-        Main.ClipsDescendants = true
-        Main.Parent = ScreenGui
-        UI.MainFrame = Main
-
-        local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0,10) corner.Parent = Main
-
-        local Title = Instance.new("TextLabel")
-        Title.Size = UDim2.new(1,0,0,36)
-        Title.Text = "KKPIXEL BLADE V6.0 (Safe)"
-        Title.Font = Enum.Font.SourceSansBold
-        Title.TextSize = 18
-        Title.TextColor3 = Color3.new(1,1,1)
-        Title.BackgroundColor3 = ACCENT
-        Title.Parent = Main
-        local g = Instance.new("UIGradient") g.Color = ColorSequence.new{ColorSequenceKeypoint.new(0,ACCENT), ColorSequenceKeypoint.new(1, Color3.fromRGB(255,120,160))} g.Parent = Title
-
-        Scroll = Instance.new("ScrollingFrame")
-        Scroll.Size = UDim2.new(1,0,1,-36)
-        Scroll.Position = UDim2.new(0,0,0,36)
-        Scroll.BackgroundColor3 = BG
-        Scroll.BorderSizePixel = 0
-        Scroll.CanvasSize = UDim2.new(0,0,0,1100)
-        Scroll.Parent = Main
-        local layout = Instance.new("UIListLayout") layout.FillDirection = Enum.FillDirection.Vertical layout.Padding = UDim.new(0,8) layout.Parent = Scroll
-        local pad = Instance.new("UIPadding"); pad.PaddingTop = UDim.new(0,10); pad.PaddingLeft=UDim.new(0,10); pad.Parent = Scroll
-
-        -- Sections
-        createHeader("FARM")
-        UI.Toggles = {}
-        UI.Sliders = {}
-        UI.Bars = {}
-
-        UI.Toggles.AuraEnabled = createToggle("BẬT KILL AURA", "AuraEnabled")
-        UI.Sliders.AuraRange = createSlider("Phạm vi Aura", "AuraRange", 100, 3000, 10, " Studs")
-        UI.Sliders.AttackDelay = createSlider("Tốc độ Đánh (s)", "AttackDelay", 0.05, 1.0, 0.01, " s")
-        UI.Toggles.AutoMoveToTarget = createToggle("Auto Dịch chuyển (TP)", "AutoMoveToTarget")
-        UI.Toggles.AutoBehindTarget = createToggle("Auto Đứng đằng sau mục tiêu", "AutoBehindTarget")
-
-        createHeader("KỸ NĂNG & HỒI PHỤC")
-        UI.Toggles.AutoHeal = createToggle("Auto Buff/Heal", "AutoHeal")
-        UI.Sliders.AutoHealHPThreshold = createSlider("Ngưỡng HP Buff", "AutoHealHPThreshold", 0.1, 0.95, 0.05, " (0-1)")
-        UI.Toggles.AutoSkills = createToggle("Auto Tất cả Skills", "AutoSkills")
-
-        createHeader("STEALTH, HITBOX & MOVE")
-        UI.Toggles.FreezeEnemyAI = createToggle("Khống chế quái (Freeze)", "FreezeEnemyAI")
-        UI.Sliders.EnemyHitboxScale = createSlider("Giảm Hitbox Quái", "EnemyHitboxScale", 0.5, 1.0, 0.05, "x")
-        UI.Sliders.PlayerHitboxScale = createSlider("Tăng Hitbox Người chơi", "PlayerHitboxScale", 1.0, 1.6, 0.05, "x")
-        UI.Sliders.HitboxChangeInterval = createSlider("Hitbox Interval", "HitboxChangeInterval", 1, 60, 1, " s")
-        UI.Sliders.MoveSpeedLimit = createSlider("Move Speed Limit", "MoveSpeedLimit", 1, 30, 0.5, "")
-        UI.Toggles.AutoDisconnect = createToggle("Tự động rời khi admin", "AutoDisconnect")
-
-        createHeader("GOM QUÁI & BURST")
-        UI.Toggles.GomQuaiEnabled = createToggle("Bật Gom Quái", "GomQuaiEnabled")
-        UI.Sliders.GomQuaiRange = createSlider("Phạm vi Gom", "GomQuaiRange", 5, 250, 1, " Studs")
-        UI.Sliders.GomQuaiDelay = createSlider("Delay Gom (s)", "GomQuaiDelay", 0.1, 10, 0.1, " s")
-
-        UI.Toggles.BurstEnabled = createToggle("Bật Burst Combo", "BurstEnabled")
-        UI.Sliders.BurstCount = createSlider("Số hits trong Burst", "BurstCount", 1, 8, 1, " hits")
-        UI.Sliders.BurstDelay = createSlider("Delay giữa hit", "BurstDelay", 0.01, 0.5, 0.01, " s")
-        UI.Sliders.BurstCooldown = createSlider("Burst Cooldown (full)", "BurstCooldown", 0.5, 10, 0.1, " s")
-
-        -- Bars
-        local barFrame = Instance.new("Frame")
-        barFrame.Size = UDim2.new(1, -20, 0, 60)
-        barFrame.BackgroundColor3 = FRAME
-        barFrame.Parent = Scroll
-        local cb = Instance.new("UICorner") cb.CornerRadius = UDim.new(0,6) cb.Parent = barFrame
-
-        local burstBg = Instance.new("Frame") burstBg.Size = UDim2.new(1,-20,0,20) burstBg.Position = UDim2.new(0,10,0,6) burstBg.BackgroundColor3 = Color3.fromRGB(50,50,50) burstBg.Parent = barFrame
-        local burstFill = Instance.new("Frame") burstFill.Size = UDim2.new(0,0,1,0) burstFill.BackgroundColor3 = TOGG_ON burstFill.BorderSizePixel = 0 burstFill.Parent = burstBg
-        local burstLabel = Instance.new("TextLabel") burstLabel.Size = UDim2.new(1,0,1,0) burstLabel.Text = "Burst: 0/"..tostring(SETTINGS.BurstCount) burstLabel.BackgroundTransparency = 1 burstLabel.Font = Enum.Font.SourceSans burstLabel.TextColor3 = Color3.new(1,1,1) burstLabel.TextSize = 14 burstLabel.Parent = burstBg
-
-        local hitBg = Instance.new("Frame") hitBg.Size = UDim2.new(1,-20,0,20) hitBg.Position = UDim2.new(0,10,0,32) hitBg.BackgroundColor3 = Color3.fromRGB(50,50,50) hitBg.Parent = barFrame
-        local hitFill = Instance.new("Frame") hitFill.Size = UDim2.new(0,0,1,0) hitFill.BackgroundColor3 = ACCENT hitFill.BorderSizePixel = 0 hitFill.Parent = hitBg
-        local hitLabel = Instance.new("TextLabel") hitLabel.Size = UDim2.new(1,0,1,0) hitLabel.Text = "Hitbox: "..tostring(SETTINGS.PlayerHitboxScale).."x" hitLabel.BackgroundTransparency = 1 hitLabel.Font = Enum.Font.SourceSans hitLabel.TextColor3 = Color3.new(1,1,1) hitLabel.TextSize = 14 hitLabel.Parent = hitBg
-
-        UI.Bars.BurstBar = burstFill UI.Bars.BurstLabel = burstLabel UI.Bars.HitboxBar = hitFill UI.Bars.HitboxLabel = hitLabel
-
-        local footer = createHeader("Phím Tắt: "..SETTINGS.PANIC_KEY.Name.." (Ẩn UI / Panic)")
-        footer.BackgroundColor3 = Color3.fromRGB(20,20,20)
-
-        -- Draggable
-        local drag = false
-        local dragStart, dragOffset = Vector2.new(0,0), Vector2.new(0,0)
-        Title.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                drag = true
-                dragStart = UserInputService:GetMouseLocation()
-                local cur = UI.MainFrame.Position
-                dragOffset = dragStart - Vector2.new(cur.X.Offset, cur.Y.Offset)
-            end
-        end)
-        Title.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
-        end)
-        RunService.RenderStepped:Connect(function()
-            if drag and UI.MainFrame then
-                local m = UserInputService:GetMouseLocation()
-                UI.MainFrame.Position = UDim2.new(0, m.X - dragOffset.X, 0, m.Y - dragOffset.Y)
-            end
-        end)
-
-        return ScreenGui
-    end
-
-    -- create UI and set initial visibility
-    pcall(function() createUI() end)
-    if UI and UI.MainFrame then UI.MainFrame.Visible = SETTINGS.UIVisible end
-
-    -- Panic key binding
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if input.KeyCode == SETTINGS.PANIC_KEY then
-            if UI and UI.MainFrame then
-                SETTINGS.UIVisible = not SETTINGS.UIVisible
-                pcall(function() UI.MainFrame.Visible = SETTINGS.UIVisible end)
-            end
+        
+        local InfoGroup = Tab3:Group("THÔNG TIN")
+        InfoGroup:Label("Phiên bản: V6.0 - Linoria UI")
+        InfoGroup:Label("Phím Tắt Ẩn/Panic: **"..SETTINGS.PANIC_KEY.Name.."**")
+        InfoGroup:Button("EXECUTE PANIC SWITCH (PAUSE ALL)", function()
             executePanicSwitch(false)
-        end
-    end)
-
+        end)
+        
+        -- Bind the panic key to the UI visibility toggle function of the Linoria window
+        UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if input.KeyCode == SETTINGS.PANIC_KEY then
+                SETTINGS.UIVisible = not SETTINGS.UIVisible
+                Window:ToggleVisibility(SETTINGS.UIVisible)
+                
+                -- Also trigger the main panic logic (reset HRp size, stop loop)
+                executePanicSwitch(false)
+            end
+        end)
+    end
+    
+    -- Try to create the Linoria UI
+    pcall(createLinoriaUI)
+    
     -- initial scan
     pcall(function() scanRemotesOnce() end)
 
@@ -715,107 +739,8 @@ local function safe_start_script()
     updateLoopStatus()
 
     print("----------------------------------------------------")
-    print("KKPIXEL_BLADE_V6.0: LOADED (Single-file, Safe Mode)")
+    print("KKPIXEL_BLADE_V6.0: LOADED (Linoria UI, Config Enabled)")
     print("----------------------------------------------------")
 end
 
 pcall(safe_start_script)
-
--- Added: Resizable UI + Close Button + Save/Load Config System
--- Example implementation snippet:
-local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
-
-local cfgFile = "kkpixel_config.json"
-local config = {}
-
-local function loadConfig()
-    if isfile(cfgFile) then
-        local data = readfile(cfgFile)
-        config = HttpService:JSONDecode(data)
-    end
-end
-
-local function saveConfig()
-    writefile(cfgFile, HttpService:JSONEncode(config))
-end
-
--- Resizable UI frame
-local ui = script.Parent:WaitForChild("MainUI")
-local draggingSize = false
-local resizeHandle = Instance.new("Frame", ui)
-resizeHandle.Size = UDim2.new(0,20,0,20)
-resizeHandle.Position = UDim2.new(1,-20,1,-20)
-resizeHandle.BackgroundColor3 = Color3.fromRGB(90,90,90)
-resizeHandle.Active = true
-resizeHandle.Draggable = false
-
-resizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingSize = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingSize = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if draggingSize and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local newX = math.clamp(input.Position.X - ui.AbsolutePosition.X, 200, 900)
-        local newY = math.clamp(input.Position.Y - ui.AbsolutePosition.Y, 150, 700)
-        ui.Size = UDim2.new(0,newX,0,newY)
-        config.uiSize = {newX,newY}
-        saveConfig()
-    end
-end)
-
--- Close Button (X)
-local closeBtn = Instance.new("TextButton", ui)
-closeBtn.Text = "X"
-closeBtn.Size = UDim2.new(0,25,0,25)
-closeBtn.Position = UDim2.new(1,-30,0,5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(255,60,60)
-closeBtn.MouseButton1Click:Connect(function()
-    ui.Visible = false
-end)
-
--- Apply config
-loadConfig()
-if config.uiSize then
-    ui.Size = UDim2.new(0, config.uiSize[1], 0, config.uiSize[2])
-end
-
--- ▼ Minimize Button (bottom-right)
-local miniBtn = Instance.new("TextButton", ui)
-miniBtn.Text = "_"
-miniBtn.Size = UDim2.new(0,28,0,20)
-miniBtn.Position = UDim2.new(1,-33,1,-25)
-miniBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-miniBtn.TextColor3 = Color3.fromRGB(255,255,255)
-miniBtn.AutoButtonColor = true
-
-local minimized = false
-local oldSize = ui.Size
-
-miniBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        oldSize = ui.Size
-        ui.Size = UDim2.new(0,200,0,35)
-        config.uiMinimized = true
-    else
-        ui.Size = oldSize
-        config.uiMinimized = false
-    end
-    saveConfig()
-end)
-
--- Apply minimize state from config
-if config.uiMinimized then
-    minimized = true
-    oldSize = UDim2.new(0, config.uiSize and config.uiSize[1] or 300, 0, config.uiSize and config.uiSize[2] or 200)
-    ui.Size = UDim2.new(0,200,0,35)
-end
